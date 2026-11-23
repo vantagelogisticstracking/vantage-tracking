@@ -1,4 +1,573 @@
-<script>
+ <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vantage Logistics — نظام تتبع شحنات دبي والصين</title>
+    <!-- تحميل خط Cairo للعربية وخط Cinzel للشعار الإنجليزي -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- تحميل Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                        serifBrand: ['Cinzel', 'Georgia', 'serif'],
+                    },
+                    colors: {
+                        vantage: {
+                            navyDark: '#0E1B29',
+                            navy: '#132436',
+                            navyLight: '#1B3148',
+                            goldLight: '#F3D37A',
+                            gold: '#D4AF37',
+                            goldDark: '#B38B1D',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .gold-text-gradient {
+            background: linear-gradient(135deg, #F3D37A 0%, #D4AF37 52%, #B38B1D 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gold-bg-gradient {
+            background: linear-gradient(135deg, #F3D37A 0%, #D4AF37 55%, #B38B1D 100%);
+        }
+        .gold-bg-gradient:hover {
+            background: linear-gradient(135deg, #F8E09B 0%, #DFBC48 55%, #C59B27 100%);
+        }
+        .navy-bg-gradient {
+            background: linear-gradient(145deg, #0E1B29 0%, #132436 55%, #1B3148 100%);
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800 antialiased selection:bg-amber-200 selection:text-vantage-navyDark">
+
+    <!-- ========================================================= -->
+    <!-- شريط التنقل العلوي (Header) بشعار Vantage Logistics -->
+    <!-- بدون أي زر أو رابط لدخول الموظف في واجهة الزبائن -->
+    <!-- ========================================================= -->
+    <header class="navy-bg-gradient text-white shadow-xl sticky top-0 z-40 border-b border-vantage-gold/25">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center py-3.5 sm:h-24 gap-3">
+
+                <!-- شعار Vantage Logistics المرسوم بدقة SVG -->
+                <div id="brand-logo-btn" role="button" tabindex="0" class="flex items-center gap-3.5 cursor-pointer group focus:outline-none">
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-vantage-navyDark border border-vantage-gold/35 flex items-center justify-center p-1.5 shadow-lg group-hover:border-vantage-gold/80 transition-all">
+                        <svg viewBox="0 0 120 115" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Vantage Logistics Logo">
+                            <defs>
+                                <linearGradient id="vantageGoldHeader" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#F7E4A8"/>
+                                    <stop offset="35%" stop-color="#F3D37A"/>
+                                    <stop offset="70%" stop-color="#D4AF37"/>
+                                    <stop offset="100%" stop-color="#B38B1D"/>
+                                </linearGradient>
+                            </defs>
+                            <!-- الذراع اليسرى العريضة لحرف V -->
+                            <path d="M10 14 C24 16 32 13 38 14 C44 15 47 21 51 30 L64 60 C55 64 46 65 39 66 L20 26 C17 20 14 17 10 14 Z" fill="url(#vantageGoldHeader)"/>
+                            <!-- الشريط الذهبي الصاعد مع الانسيابية السفلية -->
+                            <path d="M41 70 C50 69 59 67 68 62 C78 55 87 43 96 24 L82 28 L108 12 C102 35 90 61 73 82 C65 92 59 99 56 105 C52 96 50 90 54 83 C59 75 68 68 78 58 C67 66 55 72 43 75 Z" fill="url(#vantageGoldHeader)"/>
+                            <!-- القطع المنحنية السفلية اليسرى -->
+                            <path d="M44 79 C53 76 62 72 70 65 C62 74 55 81 51 89 C48 85 46 82 44 79 Z" fill="url(#vantageGoldHeader)"/>
+                        </svg>
+                    </div>
+                    <div class="text-right" dir="ltr">
+                        <div class="font-serifBrand text-xl sm:text-2xl font-bold tracking-[0.18em] gold-text-gradient leading-none">
+                            VANTAGE
+                        </div>
+                        <div class="font-serifBrand text-[9px] sm:text-[10px] tracking-[0.22em] text-vantage-goldLight/90 mt-1.5 font-semibold">
+                            LOGISTICS &amp; CLEARANCE
+                        </div>
+                    </div>
+                </div>
+
+                <!-- زر العودة لتتبع الشحنات فقط (مخصص للزبائن) -->
+                <nav class="flex items-center justify-center">
+                    <button type="button" id="nav-customer-btn" class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 gold-bg-gradient text-vantage-navyDark shadow-md cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span>تتبع الشحنات</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- شريط تنبيه أخطاء الاتصال بقاعدة البيانات (يظهر فقط عند تعذر الاتصال) -->
+    <div id="firebase-error-banner" class="hidden bg-rose-50 border-b border-rose-200 text-rose-800 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-start sm:items-center gap-3 text-xs sm:text-sm font-bold">
+            <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span id="firebase-error-text">تعذر الاتصال بقاعدة البيانات. يرجى التحقق من اتصال الإنترنت وإعدادات Firestore.</span>
+        </div>
+    </div>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+
+        <!-- ========================================================= -->
+        <!-- 1. واجهة الزبائن (Customer Interface) -->
+        <!-- ========================================================= -->
+        <section id="view-customer" class="fade-in">
+
+            <!-- الخطوة 1: اختيار مصدر الشحنة (دبي أو الصين) -->
+            <div id="customer-step-1" class="max-w-4xl mx-auto">
+                <div class="text-center mb-10">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-vantage-navy text-vantage-goldLight text-xs font-bold mb-4 shadow-sm border border-vantage-gold/30">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>نظام التتبع المباشر لشحنات Vantage Logistics</span>
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold text-vantage-navyDark mb-3">تتبع شحنتك بكل سهولة</h1>
+                    <p class="text-slate-600 text-base sm:text-lg max-w-xl mx-auto">
+                        اختر مصدر الشحنة (دبي أو الصين) ثم أدخل رقم الشحنة لمعرفة حالتها وآخر التحديثات مباشرة.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                    <!-- البطاقة 1: تتبع شحنات دبي -->
+                    <button type="button" id="card-origin-dubai" class="group relative bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl border-2 border-slate-200/80 hover:border-vantage-gold transition-all duration-300 text-right overflow-hidden cursor-pointer focus:outline-none focus:ring-4 focus:ring-vantage-gold/30">
+                        <div class="absolute top-0 left-0 w-36 h-36 bg-gradient-to-br from-amber-100/70 to-transparent rounded-br-full -translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform duration-300"></div>
+                        <div class="relative z-10 flex flex-col h-full justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-6">
+                                    <div class="w-16 h-16 rounded-2xl navy-bg-gradient text-vantage-goldLight flex items-center justify-center shadow-lg border border-vantage-gold/40 group-hover:scale-105 transition-transform">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                        </svg>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 text-vantage-navyDark border border-vantage-gold/40 text-xs font-bold">
+                                        🇦🇪 دبي — الإمارات
+                                    </span>
+                                </div>
+                                <h2 class="text-2xl font-extrabold text-vantage-navyDark mb-2 group-hover:text-vantage-goldDark transition-colors">تتبع شحنات دبي</h2>
+                                <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                                    استعلم عن حالة الشحنات القادمة من دبي بسهولة. مثال للأرقام: <span class="font-bold text-vantage-navyDark">دبي 1</span> أو <span class="font-bold text-vantage-navyDark">1</span>.
+                                </p>
+                            </div>
+                            <div class="flex items-center text-vantage-goldDark font-extrabold text-sm group-hover:gap-3 gap-2 transition-all">
+                                <span>الدخول لتتبع شحنات دبي</span>
+                                <svg class="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- البطاقة 2: تتبع شحنات الصين -->
+                    <button type="button" id="card-origin-china" class="group relative bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl border-2 border-slate-200/80 hover:border-vantage-gold transition-all duration-300 text-right overflow-hidden cursor-pointer focus:outline-none focus:ring-4 focus:ring-vantage-gold/30">
+                        <div class="absolute top-0 left-0 w-36 h-36 bg-gradient-to-br from-slate-200/70 to-transparent rounded-br-full -translate-x-8 -translate-y-8 group-hover:scale-110 transition-transform duration-300"></div>
+                        <div class="relative z-10 flex flex-col h-full justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-6">
+                                    <div class="w-16 h-16 rounded-2xl navy-bg-gradient text-vantage-goldLight flex items-center justify-center shadow-lg border border-vantage-gold/40 group-hover:scale-105 transition-transform">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                        </svg>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 text-vantage-navyDark border border-slate-300 text-xs font-bold">
+                                        🇨🇳 الصين
+                                    </span>
+                                </div>
+                                <h2 class="text-2xl font-extrabold text-vantage-navyDark mb-2 group-hover:text-vantage-goldDark transition-colors">تتبع شحنات الصين</h2>
+                                <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                                    استعلم عن حالة الشحنات القادمة من الصين بسهولة. مثال للأرقام: <span class="font-bold text-vantage-navyDark">صين 10</span> أو <span class="font-bold text-vantage-navyDark">10</span>.
+                                </p>
+                            </div>
+                            <div class="flex items-center text-vantage-goldDark font-extrabold text-sm group-hover:gap-3 gap-2 transition-all">
+                                <span>الدخول لتتبع شحنات الصين</span>
+                                <svg class="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- الخطوة 2: شاشة البحث عن الشحنة للمصدر المختار -->
+            <div id="customer-step-2" class="hidden max-w-4xl mx-auto fade-in">
+                <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+                    <button type="button" id="btn-back-origin" class="inline-flex items-center gap-2 text-vantage-navyDark hover:text-vantage-goldDark bg-white hover:bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold shadow-sm transition-all cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span>العودة لاختيار المصدر</span>
+                    </button>
+                    <div id="selected-origin-badge" class="px-4 py-1.5 rounded-full text-sm font-extrabold shadow-sm bg-vantage-navy text-vantage-goldLight border border-vantage-gold/40"></div>
+                </div>
+
+                <!-- صندوق البحث -->
+                <div class="bg-white rounded-3xl shadow-lg border border-slate-200/90 p-6 sm:p-8 mb-8">
+                    <h2 id="search-box-title" class="text-2xl font-extrabold text-vantage-navyDark mb-2">تتبع شحنات دبي</h2>
+                    <p class="text-slate-500 text-sm mb-6">أدخل رقم الشحنة كاملاً أو الرقم فقط وسنظهر لك حالتها بتحديث مباشر وفوري.</p>
+
+                    <form id="tracking-search-form" class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-grow">
+                            <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input type="text" id="tracking-input" required autocomplete="off"
+                                class="w-full pr-12 pl-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-base font-bold text-vantage-navyDark placeholder-slate-400 focus:outline-none focus:bg-white focus:border-vantage-gold focus:ring-4 focus:ring-vantage-gold/20 transition-all"
+                                placeholder="أدخل رقم الشحنة...">
+                        </div>
+                        <button type="submit" id="customer-search-btn"
+                            class="px-8 py-4 rounded-2xl font-extrabold text-vantage-navyDark gold-bg-gradient shadow-lg shadow-amber-900/15 transition-all flex items-center justify-center gap-2 shrink-0 text-base cursor-pointer">
+                            <span>بحث عن الشحنة</span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- بطاقة نتيجة البحث -->
+                <div id="tracking-result-container" class="hidden fade-in"></div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- 2. واجهة الموظف السرية (تفتح فقط عبر الرابط #admin) -->
+        <!-- ========================================================= -->
+        <section id="view-admin" class="hidden fade-in">
+
+            <!-- شاشة تسجيل دخول الموظف (بدون أي تلميحات لبيانات الدخول) -->
+            <div id="admin-login-screen" class="max-w-md mx-auto mt-4 sm:mt-10 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+                <div class="navy-bg-gradient p-7 text-center border-b border-vantage-gold/30">
+                    <div class="w-20 h-20 mx-auto mb-3 rounded-2xl bg-vantage-navyDark border border-vantage-gold/40 flex items-center justify-center p-2 shadow-xl">
+                        <svg viewBox="0 0 120 115" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Vantage Logistics Logo">
+                            <defs>
+                                <linearGradient id="vantageGoldLogin" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#F7E4A8"/>
+                                    <stop offset="40%" stop-color="#F3D37A"/>
+                                    <stop offset="75%" stop-color="#D4AF37"/>
+                                    <stop offset="100%" stop-color="#B38B1D"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M10 14 C24 16 32 13 38 14 C44 15 47 21 51 30 L64 60 C55 64 46 65 39 66 L20 26 C17 20 14 17 10 14 Z" fill="url(#vantageGoldLogin)"/>
+                            <path d="M41 70 C50 69 59 67 68 62 C78 55 87 43 96 24 L82 28 L108 12 C102 35 90 61 73 82 C65 92 59 99 56 105 C52 96 50 90 54 83 C59 75 68 68 78 58 C67 66 55 72 43 75 Z" fill="url(#vantageGoldLogin)"/>
+                            <path d="M44 79 C53 76 62 72 70 65 C62 74 55 81 51 89 C48 85 46 82 44 79 Z" fill="url(#vantageGoldLogin)"/>
+                        </svg>
+                    </div>
+                    <div class="font-serifBrand text-2xl font-bold tracking-[0.2em] gold-text-gradient" dir="ltr">VANTAGE</div>
+                    <div class="font-serifBrand text-[10px] tracking-[0.22em] text-vantage-goldLight/90 mt-1" dir="ltr">LOGISTICS &amp; CLEARANCE</div>
+                    <p class="text-slate-300 text-xs font-semibold mt-3">بوابة دخول الموظفين</p>
+                </div>
+
+                <form id="admin-login-form" class="p-7 space-y-5">
+                    <div>
+                        <label for="admin-username" class="block text-xs font-extrabold text-vantage-navyDark mb-2">اسم المستخدم</label>
+                        <input type="text" id="admin-username" required autocomplete="username" placeholder="أدخل اسم المستخدم"
+                            class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-sm font-bold text-vantage-navyDark focus:outline-none focus:bg-white focus:border-vantage-gold focus:ring-4 focus:ring-vantage-gold/15 transition-all" dir="ltr">
+                    </div>
+
+                    <div>
+                        <label for="admin-password" class="block text-xs font-extrabold text-vantage-navyDark mb-2">كلمة المرور</label>
+                        <div class="relative">
+                            <input type="password" id="admin-password" required autocomplete="current-password" placeholder="أدخل كلمة المرور"
+                                class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-sm font-bold text-vantage-navyDark focus:outline-none focus:bg-white focus:border-vantage-gold focus:ring-4 focus:ring-vantage-gold/15 transition-all" dir="ltr">
+                            <button type="button" id="toggle-password-btn" title="إظهار / إخفاء كلمة المرور"
+                                class="absolute inset-y-0 left-0 pl-3.5 pr-2 flex items-center text-slate-400 hover:text-vantage-navyDark transition-colors cursor-pointer">
+                                <svg id="eye-open-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <svg id="eye-closed-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="admin-login-error" class="hidden text-rose-700 text-xs font-bold bg-rose-50 border border-rose-200 py-2.5 px-3.5 rounded-xl text-center">
+                        اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق والمحاولة مجدداً.
+                    </div>
+
+                    <!-- خيار تذكرني (البقاء مسجل الدخول) -->
+                    <div class="flex items-center justify-between pt-1">
+                        <label for="admin-remember" class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                            <input type="checkbox" id="admin-remember" checked
+                                class="w-4 h-4 rounded border-slate-300 text-vantage-navy focus:ring-vantage-gold accent-[#132436]">
+                            <span class="text-xs font-bold text-slate-700">تذكرني (البقاء مسجل الدخول)</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 navy-bg-gradient hover:opacity-95 text-vantage-goldLight font-extrabold rounded-2xl shadow-lg border border-vantage-gold/30 transition-all cursor-pointer">
+                        تسجيل الدخول
+                    </button>
+                </form>
+            </div>
+
+            <!-- لوحة التحكم الفعلية للموظف -->
+            <div id="admin-dashboard" class="hidden space-y-6">
+
+                <!-- ترويسة لوحة التحكم -->
+                <div class="navy-bg-gradient text-white p-6 rounded-3xl shadow-lg border border-vantage-gold/25 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <h2 class="text-2xl font-extrabold gold-text-gradient">لوحة إدارة شحنات Vantage Logistics</h2>
+                            <!-- شارة حالة الاتصال المباشر مع Firebase -->
+                            <span id="firebase-status-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border bg-amber-500/20 text-amber-200 border-amber-400/40">
+                                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                <span>جاري الاتصال...</span>
+                            </span>
+                        </div>
+                        <p class="text-slate-300 text-sm mt-1.5">أضف شحنات جديدة وحدّث حالات الشحنات اليومية لتظهر للزبائن في نفس اللحظة.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+                        <button type="button" id="btn-preview-customer" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-vantage-navyLight hover:bg-slate-700 text-white border border-slate-500/50 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>معاينة صفحة الزبائن</span>
+                        </button>
+                        <button type="button" id="btn-export-csv" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-vantage-navyLight hover:bg-slate-700 text-vantage-goldLight border border-vantage-gold/35 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            <span>تصدير إلى Excel (CSV)</span>
+                        </button>
+                        <button type="button" id="btn-admin-logout" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-rose-600/90 hover:bg-rose-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- بطاقات الإحصائيات السريعة (6 بطاقات) -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-500 mb-1">إجمالي الشحنات</p>
+                        <p id="stat-total" class="text-2xl font-extrabold text-vantage-navyDark">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-200/80">
+                        <p class="text-xs font-bold text-slate-500 mb-1">🇦🇪 شحنات دبي</p>
+                        <p id="stat-dubai" class="text-2xl font-extrabold text-vantage-goldDark">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <p class="text-xs font-bold text-slate-500 mb-1">🇨🇳 شحنات الصين</p>
+                        <p id="stat-china" class="text-2xl font-extrabold text-vantage-navyDark">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-blue-200/80">
+                        <p class="text-xs font-bold text-blue-700 mb-1">تم الشحن / في الطريق</p>
+                        <p id="stat-shipped" class="text-2xl font-extrabold text-blue-700">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-amber-300/80">
+                        <p class="text-xs font-bold text-amber-800 mb-1">جاهزة للتسليم</p>
+                        <p id="stat-ready" class="text-2xl font-extrabold text-amber-700">0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-emerald-200/80">
+                        <p class="text-xs font-bold text-emerald-700 mb-1">تم التسليم</p>
+                        <p id="stat-delivered" class="text-2xl font-extrabold text-emerald-700">0</p>
+                    </div>
+                </div>
+
+                <!-- بطاقة إضافة بيانات تجريبية (تظهر فقط عندما تكون قاعدة البيانات فارغة) -->
+                <div id="seed-data-banner" class="hidden bg-amber-50 border border-vantage-gold/50 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl navy-bg-gradient text-vantage-goldLight flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-vantage-navyDark">قاعدة بيانات الشحنات فارغة حالياً</h3>
+                            <p class="text-xs text-slate-600 mt-0.5">يمكنك إضافة شحنتين تجريبيتين إلى Firebase بضغطة واحدة لتجربة النظام فوراً.</p>
+                        </div>
+                    </div>
+                    <button type="button" id="seed-sample-btn" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold text-vantage-navyDark gold-bg-gradient shadow-sm transition-all shrink-0 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer">
+                        <span>إضافة بيانات تجريبية (دبي 1، صين 10)</span>
+                    </button>
+                </div>
+
+                <!-- نموذج إضافة شحنة جديدة (بدون خانة اسم الزبون) -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                        <h3 class="text-base font-extrabold text-vantage-navyDark flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg gold-bg-gradient text-vantage-navyDark flex items-center justify-center font-extrabold text-lg">+</span>
+                            <span>إضافة شحنة جديدة</span>
+                        </h3>
+                        <span class="text-xs text-slate-500 font-semibold">الرمز المعتمد: <span id="new-code-preview" class="text-vantage-navyDark font-extrabold">دبي ...</span></span>
+                    </div>
+
+                    <form id="add-shipment-form" class="p-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- المصدر -->
+                            <div>
+                                <label for="add-origin" class="block text-xs font-bold text-slate-700 mb-1.5">المصدر *</label>
+                                <select id="add-origin" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-vantage-navyDark focus:outline-none focus:border-vantage-gold">
+                                    <option value="dubai">دبي</option>
+                                    <option value="china">الصين</option>
+                                </select>
+                            </div>
+
+                            <!-- رقم الشحنة -->
+                            <div>
+                                <label for="add-number" class="block text-xs font-bold text-slate-700 mb-1.5">رقم الشحنة *</label>
+                                <input type="text" id="add-number" required placeholder="مثال: 15 أو دبي 15"
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-vantage-navyDark focus:outline-none focus:border-vantage-gold">
+                            </div>
+
+                            <!-- الحالة (3 حالات معتمدة فقط) -->
+                            <div>
+                                <label for="add-status" class="block text-xs font-bold text-slate-700 mb-1.5">الحالة *</label>
+                                <select id="add-status" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-vantage-navyDark focus:outline-none focus:border-vantage-gold">
+                                    <option value="shipped">تم الشحن / في الطريق</option>
+                                    <option value="ready">جاهزة للتسليم</option>
+                                    <option value="delivered">تم التسليم</option>
+                                </select>
+                            </div>
+
+                            <!-- ملاحظة اختيارية -->
+                            <div>
+                                <label for="add-note" class="block text-xs font-bold text-slate-700 mb-1.5">الملاحظة (اختياري)</label>
+                                <input type="text" id="add-note" placeholder="ملاحظة تظهر للزبون..."
+                                    class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-vantage-navyDark focus:outline-none focus:border-vantage-gold">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex justify-end">
+                            <button type="submit" id="add-shipment-btn" class="w-full sm:w-auto px-7 py-2.5 rounded-xl font-extrabold text-sm text-vantage-navyDark gold-bg-gradient shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span>إضافة الشحنة</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- جدول إدارة وتحديث الشحنات اليومي (بدون عمود اسم الزبون) -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 bg-slate-50/70">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            <!-- تصفية حسب المصدر -->
+                            <div class="flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl">
+                                <button type="button" id="filter-origin-all" class="flex-1 sm:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold bg-vantage-navy text-vantage-goldLight shadow-sm transition-all cursor-pointer">الكل</button>
+                                <button type="button" id="filter-origin-dubai" class="flex-1 sm:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-vantage-navyDark transition-all cursor-pointer">دبي</button>
+                                <button type="button" id="filter-origin-china" class="flex-1 sm:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-vantage-navyDark transition-all cursor-pointer">الصين</button>
+                            </div>
+
+                            <!-- تصفية حسب الحالة -->
+                            <select id="admin-status-filter" class="px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-vantage-navyDark focus:outline-none focus:border-vantage-gold">
+                                <option value="all">جميع الحالات</option>
+                                <option value="shipped">تم الشحن / في الطريق</option>
+                                <option value="ready">جاهزة للتسليم</option>
+                                <option value="delivered">تم التسليم</option>
+                            </select>
+                        </div>
+
+                        <!-- شريط البحث برقم الشحنة -->
+                        <div class="relative w-full lg:w-80">
+                            <input type="text" id="admin-search-input" placeholder="ابحث برقم الشحنة أو الملاحظة..."
+                                class="w-full pr-10 pl-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-vantage-gold focus:ring-2 focus:ring-vantage-gold/20">
+                            <svg class="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-extrabold">
+                                    <th class="py-3.5 px-4">رقم الشحنة</th>
+                                    <th class="py-3.5 px-4">المصدر</th>
+                                    <th class="py-3.5 px-4">الحالة</th>
+                                    <th class="py-3.5 px-4">الملاحظة</th>
+                                    <th class="py-3.5 px-4">آخر تحديث</th>
+                                    <th class="py-3.5 px-4 text-center">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-shipments-tbody" class="divide-y divide-slate-100 text-sm">
+                                <!-- يتم التعبئة تلقائياً من Firebase -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="admin-empty-state" class="hidden py-12 text-center text-slate-500">
+                        <p class="font-bold text-base mb-1">لا توجد شحنات مطابقة</p>
+                        <p class="text-xs">جرّب تغيير البحث أو أضف شحنة جديدة من الأعلى.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- تذييل الصفحة -->
+    <footer class="bg-vantage-navyDark text-slate-300 border-t border-vantage-gold/25 py-5 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs font-medium">
+            <span class="font-serifBrand tracking-widest text-vantage-goldLight" dir="ltr">VANTAGE LOGISTICS &amp; CLEARANCE</span>
+            <span>&copy; 2026 جميع الحقوق محفوظة — نظام تتبع شحنات دبي والصين</span>
+        </div>
+    </footer>
+
+    <!-- ========================================================= -->
+    <!-- نافذة تأكيد الحذف المخصصة (بديلاً عن confirm) -->
+    <!-- ========================================================= -->
+    <div id="delete-modal" class="hidden fixed inset-0 z-50 bg-vantage-navyDark/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center fade-in border border-slate-200">
+            <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-extrabold text-vantage-navyDark mb-2">تأكيد حذف الشحنة</h3>
+            <p class="text-sm text-slate-500 mb-6">هل أنت متأكد من حذف الشحنة <span id="delete-shipment-code" class="font-extrabold text-vantage-navyDark"></span>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <div class="flex items-center justify-center gap-3">
+                <button type="button" id="cancel-delete-btn" class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer">إلغاء</button>
+                <button type="button" id="confirm-delete-btn" class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer">نعم، احذف</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- حاوية الإشعارات المنبثقة (Toast) -->
+    <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ========================================================= -->
+    <!-- منطق التطبيق القياسي (<script> وليس module) لضمان عمل كل الأزرار دائماً -->
+    <!-- مع تحميل Firebase Firestore ديناميكياً وبشكل آمن داخل try/catch -->
+    <!-- ========================================================= -->
+    <script>
         (function () {
             'use strict';
 
@@ -13,8 +582,12 @@
                 measurementId: "G-LX0VZBV2TH"
             };
 
-            // النطاق الوهمي المضاف تلقائياً لاسم المستخدم عند تسجيل الدخول
-            const ADMIN_EMAIL_DOMAIN = '@vantage.com';
+            // بيانات دخول الموظف المعتمدة
+            const ADMIN_CREDENTIALS = {
+                username: 'Admin1',
+                password: 'V@ntage2026'
+            };
+            const ADMIN_REMEMBER_KEY = 'vantage_admin_remembered';
 
             // المراحل الثلاث المعتمدة فقط
             const STAGES = [
@@ -39,9 +612,31 @@
             let pendingDeleteId = null;
             let lastSearchedQuery = '';
 
-            // مراجع دوال Firestore و Auth التي يتم تحميلها ديناميكياً
+            // مراجع دوال Firestore التي يتم تحميلها ديناميكياً
             let firestoreApi = null;
-            let authApi = null;
+
+            // قراءة/كتابة آمنة من localStorage
+            function getStoredRemember() {
+                try {
+                    return localStorage.getItem(ADMIN_REMEMBER_KEY) === 'true';
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            function setStoredRemember(val) {
+                try {
+                    if (val) {
+                        localStorage.setItem(ADMIN_REMEMBER_KEY, 'true');
+                    } else {
+                        localStorage.removeItem(ADMIN_REMEMBER_KEY);
+                    }
+                } catch (e) {
+                    // تجاهل الخطأ في بيئات التصفح المقيدة
+                }
+            }
+
+            isAdminLoggedIn = getStoredRemember();
 
             // ---------------------------------------------------------
             // دوال مساعدة للنصوص والأرقام والتواريخ
@@ -106,7 +701,7 @@
                     btn.dataset.originalHtml = btn.innerHTML;
                     btn.disabled = true;
                     btn.innerHTML =
-                        '<svg class="w-4 h-4 animate-spin shrink-0 inline-block ml-1.5" fill="none" viewBox="0 0 24 24">' +
+                        '<svg class="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">' +
                         '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
                         '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>' +
                         '</svg><span>' + escapeHTML(loadingText || 'جاري المعالجة...') + '</span>';
@@ -323,6 +918,7 @@
                 const currentStageIdx = getStageIndex(shipment.status);
                 const isDubai = shipment.origin === 'dubai';
 
+                // بناء شريط التقدم للمراحل الثلاث المعتمدة
                 const stepperHTML = STAGES.map(function (stage, idx) {
                     const isCompleted = idx < currentStageIdx;
                     const isCurrent = idx === currentStageIdx;
@@ -353,6 +949,7 @@
                     );
                 }).join('');
 
+                // سجل التحديثات الزمني
                 const historyList = Array.isArray(shipment.history) ? shipment.history.slice().reverse() : [];
                 const historyHTML = historyList.length > 0 ? historyList.map(function (h, i) {
                     const hLabel = STAGE_MAP[h.status] ? STAGE_MAP[h.status].label : h.status;
@@ -409,7 +1006,7 @@
             }
 
             // ---------------------------------------------------------
-            // لوحة الموظف: تسجيل الدخول والخروج عبر Firebase Authentication
+            // لوحة الموظف: تسجيل الدخول، الخروج، والإدارة
             // ---------------------------------------------------------
             function togglePasswordVisibility() {
                 const input = document.getElementById('admin-password');
@@ -427,63 +1024,34 @@
                 }
             }
 
-            async function handleAdminLogin(event) {
+            function handleAdminLogin(event) {
                 event.preventDefault();
-                if (!authApi) {
-                    showToast('جاري تهيئة الاتصال بـ Firebase، حاول بعد لحظة.', 'error');
-                    return;
-                }
-
-                const usernameInput = document.getElementById('admin-username');
-                const passwordInput = document.getElementById('admin-password');
+                const username = document.getElementById('admin-username').value.trim();
+                const password = document.getElementById('admin-password').value;
                 const rememberMe = document.getElementById('admin-remember').checked;
                 const errorEl = document.getElementById('admin-login-error');
-                const submitBtn = event.target.querySelector('button[type="submit"]');
 
-                const rawUsername = usernameInput.value.trim();
-                const password = passwordInput.value;
-
-                // إضافة @vantage.com تلقائياً إذا كتب الموظف اسم المستخدم فقط
-                const email = rawUsername.indexOf('@') !== -1 ? rawUsername : (rawUsername + ADMIN_EMAIL_DOMAIN);
-
-                errorEl.classList.add('hidden');
-                setButtonLoading(submitBtn, true, 'جاري التحقق...');
-
-                try {
-                    const persistence = rememberMe
-                        ? authApi.browserLocalPersistence
-                        : authApi.browserSessionPersistence;
-
-                    await authApi.setPersistence(authApi.auth, persistence);
-                    await authApi.signInWithEmailAndPassword(authApi.auth, email, password);
-
+                if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
                     isAdminLoggedIn = true;
-                    usernameInput.value = '';
-                    passwordInput.value = '';
+                    setStoredRemember(rememberMe);
+                    errorEl.classList.add('hidden');
+                    document.getElementById('admin-username').value = '';
+                    document.getElementById('admin-password').value = '';
                     document.getElementById('admin-login-screen').classList.add('hidden');
                     document.getElementById('admin-dashboard').classList.remove('hidden');
                     updateFirebaseStatusBadge(firebaseStatus);
                     renderAdminDashboard();
                     showToast('تم تسجيل الدخول إلى لوحة الموظف بنجاح', 'success');
-                } catch (err) {
-                    console.error('Firebase Auth error:', err);
+                } else {
                     errorEl.classList.remove('hidden');
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                } finally {
-                    setButtonLoading(submitBtn, false);
+                    document.getElementById('admin-password').value = '';
+                    document.getElementById('admin-password').focus();
                 }
             }
 
-            async function handleAdminLogout() {
-                try {
-                    if (authApi) {
-                        await authApi.signOut(authApi.auth);
-                    }
-                } catch (err) {
-                    console.error('Sign out error:', err);
-                }
+            function handleAdminLogout() {
                 isAdminLoggedIn = false;
+                setStoredRemember(false);
                 document.getElementById('admin-dashboard').classList.add('hidden');
                 document.getElementById('admin-login-screen').classList.remove('hidden');
                 showToast('تم تسجيل الخروج بنجاح', 'info');
@@ -763,7 +1331,7 @@
             }
 
             // ---------------------------------------------------------
-            // تصدير البيانات إلى Excel (CSV مع UTF-8 BOM)
+            // تصدير البيانات إلى Excel (CSV مع UTF-8 BOM وبدون اسم الزبون)
             // ---------------------------------------------------------
             function exportShipmentsCSV() {
                 if (shipments.length === 0) {
@@ -800,36 +1368,17 @@
             }
 
             // ---------------------------------------------------------
-            // التحميل الديناميكي الآمن لـ Firebase Firestore + Auth v13.4.0
+            // التحميل الديناميكي الآمن لـ Firebase Firestore v13.4.0
             // ---------------------------------------------------------
             async function initFirebase() {
                 updateFirebaseStatusBadge('connecting');
                 try {
                     const appMod = await import('https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js');
                     const fsMod = await import('https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js');
-                    const authMod = await import('https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js');
 
                     const app = appMod.initializeApp(firebaseConfig);
                     const db = fsMod.getFirestore(app);
-                    const auth = authMod.getAuth(app);
                     const shipmentsCollection = fsMod.collection(db, 'shipments');
-
-                    authApi = {
-                        auth: auth,
-                        signInWithEmailAndPassword: authMod.signInWithEmailAndPassword,
-                        signOut: authMod.signOut,
-                        setPersistence: authMod.setPersistence,
-                        browserLocalPersistence: authMod.browserLocalPersistence,
-                        browserSessionPersistence: authMod.browserSessionPersistence
-                    };
-
-                    // مراقبة حالة تسجيل دخول الموظف تلقائياً
-                    authMod.onAuthStateChanged(auth, function (user) {
-                        isAdminLoggedIn = !!user;
-                        if (window.location.hash === '#admin') {
-                            switchView('admin');
-                        }
-                    });
 
                     firestoreApi = {
                         db: db,
@@ -849,6 +1398,7 @@
                                 list.push(Object.assign({ id: docSnap.id }, data));
                             });
 
+                            // ترتيب الشحنات حسب آخر تحديث (الأحدث أولاً)
                             list.sort(function (a, b) {
                                 const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
                                 const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
@@ -871,7 +1421,7 @@
                             console.error('Firestore onSnapshot error:', error);
                             updateFirebaseStatusBadge('error');
                             if (error && error.code === 'permission-denied') {
-                                showFirebaseError('تم رفض صلاحية الوصول إلى Firestore. يرجى التأكد من ضبط قواعد Firestore Rules في لوحة تحكم Firebase.');
+                                showFirebaseError('تم رفض صلاحية الوصول إلى Firestore. يرجى التأكد من تفعيل وضع الاختبار (Test Mode) أو ضبط قواعد Firestore Rules في لوحة تحكم Firebase.');
                             } else {
                                 showFirebaseError('تعذر الاتصال بقاعدة بيانات Firebase. يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً.');
                             }
@@ -888,6 +1438,7 @@
             // ربط جميع الأزرار والنماذج عند اكتمال تحميل الصفحة
             // ---------------------------------------------------------
             document.addEventListener('DOMContentLoaded', function () {
+                // الشعار وزر تتبع الشحنات في الهيدر
                 document.getElementById('brand-logo-btn').addEventListener('click', function () {
                     goToCustomerView(true);
                 });
@@ -895,6 +1446,7 @@
                     goToCustomerView(true);
                 });
 
+                // بطاقتا اختيار المصدر في واجهة الزبائن
                 document.getElementById('card-origin-dubai').addEventListener('click', function () {
                     selectOrigin('dubai');
                 });
@@ -902,24 +1454,30 @@
                     selectOrigin('china');
                 });
 
+                // زر العودة لاختيار المصدر ونموذج البحث للزبون
                 document.getElementById('btn-back-origin').addEventListener('click', resetOriginSelection);
                 document.getElementById('tracking-search-form').addEventListener('submit', handleCustomerSearch);
 
+                // شاشة دخول الموظف
                 document.getElementById('admin-login-form').addEventListener('submit', handleAdminLogin);
                 document.getElementById('toggle-password-btn').addEventListener('click', togglePasswordVisibility);
 
+                // أزرار ترويسة لوحة الموظف
                 document.getElementById('btn-preview-customer').addEventListener('click', function () {
                     goToCustomerView(false);
                 });
                 document.getElementById('btn-export-csv').addEventListener('click', exportShipmentsCSV);
                 document.getElementById('btn-admin-logout').addEventListener('click', handleAdminLogout);
 
+                // زر إضافة البيانات التجريبية
                 document.getElementById('seed-sample-btn').addEventListener('click', seedSampleShipments);
 
+                // نموذج إضافة شحنة جديدة
                 document.getElementById('add-origin').addEventListener('change', updateNewCodePreview);
                 document.getElementById('add-number').addEventListener('input', updateNewCodePreview);
                 document.getElementById('add-shipment-form').addEventListener('submit', handleAddShipment);
 
+                // فلاتر وبحث لوحة الموظف
                 document.getElementById('filter-origin-all').addEventListener('click', function () {
                     setAdminOriginFilter('all');
                 });
@@ -932,6 +1490,7 @@
                 document.getElementById('admin-status-filter').addEventListener('change', renderAdminTable);
                 document.getElementById('admin-search-input').addEventListener('input', renderAdminTable);
 
+                // تفويض الأحداث (Event Delegation) لأزرار التحديث والحذف داخل جدول الشحنات
                 document.getElementById('admin-shipments-tbody').addEventListener('click', function (e) {
                     const btn = e.target.closest('button[data-action]');
                     if (!btn) return;
@@ -946,14 +1505,19 @@
                     }
                 });
 
+                // نافذة تأكيد الحذف
                 document.getElementById('cancel-delete-btn').addEventListener('click', closeDeleteModal);
                 document.getElementById('confirm-delete-btn').addEventListener('click', confirmDeleteShipment);
 
+                // الاستماع لتغير الهاش في الرابط (#admin)
                 window.addEventListener('hashchange', handleHashRoute);
 
+                // التهيئة الأولية للواجهة ثم تحميل Firebase
                 updateNewCodePreview();
                 handleHashRoute();
                 initFirebase();
             });
         })();
     </script>
+</body>
+</html>
