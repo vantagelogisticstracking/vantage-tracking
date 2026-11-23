@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -328,8 +328,8 @@
                         </label>
                     </div>
 
-                    <button type="submit" class="w-full py-3.5 navy-bg-gradient hover:opacity-95 text-vantage-goldLight font-extrabold rounded-2xl shadow-lg border border-vantage-gold/30 transition-all cursor-pointer">
-                        تسجيل الدخول
+                    <button type="submit" id="admin-login-btn" class="w-full py-3.5 navy-bg-gradient hover:opacity-95 text-vantage-goldLight font-extrabold rounded-2xl shadow-lg border border-vantage-gold/30 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer">
+                        <span>تسجيل الدخول</span>
                     </button>
                 </form>
             </div>
@@ -347,6 +347,8 @@
                                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                                 <span>جاري الاتصال...</span>
                             </span>
+                            <!-- عرض حساب الموظف المسجل حالياً -->
+                            <span id="admin-current-user" class="hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-vantage-goldLight border border-vantage-gold/30" dir="ltr"></span>
                         </div>
                         <p class="text-slate-300 text-sm mt-1.5">أضف شحنات جديدة وحدّث حالات الشحنات اليومية لتظهر للزبائن في نفس اللحظة.</p>
                     </div>
@@ -582,13 +584,6 @@
                 measurementId: "G-LX0VZBV2TH"
             };
 
-            // بيانات دخول الموظف المعتمدة
-            const ADMIN_CREDENTIALS = {
-                username: 'Admin1',
-                password: 'V@ntage2026'
-            };
-            const ADMIN_REMEMBER_KEY = 'vantage_admin_remembered';
-
             // المراحل الثلاث المعتمدة فقط
             const STAGES = [
                 { key: 'shipped', label: 'تم الشحن / في الطريق', badgeClass: 'bg-blue-100 text-blue-800 border-blue-200' },
@@ -608,405 +603,21 @@
             let firebaseStatus = 'connecting'; // 'connecting' | 'connected' | 'error'
             let selectedOrigin = null; // 'dubai' | 'china'
             let isAdminLoggedIn = false;
+            let currentAuthUser = null;
             let currentOriginFilter = 'all';
             let pendingDeleteId = null;
             let lastSearchedQuery = '';
 
-            // مراجع دوال Firestore التي يتم تحميلها ديناميكياً
+            // مراجع دوال Firestore و Auth التي يتم تحميلها ديناميكياً
             let firestoreApi = null;
-
-            // قراءة/كتابة آمنة من localStorage
-            function getStoredRemember() {
-                try {
-                    return localStorage.getItem(ADMIN_REMEMBER_KEY) === 'true';
-                } catch (e) {
-                    return false;
-                }
-            }
-
-            function setStoredRemember(val) {
-                try {
-                    if (val) {
-                        localStorage.setItem(ADMIN_REMEMBER_KEY, 'true');
-                    } else {
-                        localStorage.removeItem(ADMIN_REMEMBER_KEY);
-                    }
-                } catch (e) {
-                    // تجاهل الخطأ في بيئات التصفح المقيدة
-                }
-            }
-
-            isAdminLoggedIn = getStoredRemember();
+            let authApi = null;
 
             // ---------------------------------------------------------
             // دوال مساعدة للنصوص والأرقام والتواريخ
             // ---------------------------------------------------------
-            function toEnglishDigits(str) {
-                if (!str) return '';
-                return String(str)
-                    .replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); })
-                    .replace(/[۰-۹]/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d); });
-            }
-
-            function extractCoreNumber(rawInput) {
-                const cleaned = toEnglishDigits(rawInput).trim().replace(/\s+/g, ' ');
-                return cleaned
-                    .replace(/^(دبي|الصين|صين|dubai|china)[\s\-_#]*/i, '')
-                    .trim();
-            }
-
-            function formatShipmentCode(origin, numberInput) {
-                const prefix = origin === 'dubai' ? 'دبي' : 'صين';
-                const core = extractCoreNumber(numberInput);
-                return core ? (prefix + ' ' + core) : prefix;
-            }
-
-            function getOriginArabicName(origin) {
-                return origin === 'dubai' ? 'دبي' : 'الصين';
-            }
-
-            function getStageIndex(statusKey) {
-                const idx = STAGES.findIndex(function (s) { return s.key === statusKey; });
-                return idx >= 0 ? idx : 0;
-            }
-
-            function formatDateTimeArabic(isoString) {
-                if (!isoString) return '—';
-                try {
-                    return new Intl.DateTimeFormat('ar-EG', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }).format(new Date(isoString));
-                } catch (e) {
-                    return isoString;
-                }
-            }
-
-            function escapeHTML(str) {
-                if (!str) return '';
-                return String(str)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-            }
-
-            function setButtonLoading(btn, isLoading, loadingText) {
-                if (!btn) return;
-                if (isLoading) {
-                    btn.dataset.originalHtml = btn.innerHTML;
-                    btn.disabled = true;
-                    btn.innerHTML =
-                        '<svg class="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">' +
-                        '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
-                        '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>' +
-                        '</svg><span>' + escapeHTML(loadingText || 'جاري المعالجة...') + '</span>';
-                } else {
-                    btn.disabled = false;
-                    if (btn.dataset.originalHtml) {
-                        btn.innerHTML = btn.dataset.originalHtml;
-                    }
-                }
-            }
-
+// ... existing code ... -->
             // ---------------------------------------------------------
-            // حالة الاتصال بـ Firebase والتنبيهات
-            // ---------------------------------------------------------
-            function updateFirebaseStatusBadge(status) {
-                firebaseStatus = status;
-                const badge = document.getElementById('firebase-status-badge');
-                if (!badge) return;
-
-                if (status === 'connected') {
-                    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border bg-emerald-500/20 text-emerald-300 border-emerald-400/40';
-                    badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>متصل بـ Firebase</span>';
-                } else if (status === 'connecting') {
-                    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border bg-amber-500/20 text-amber-200 border-amber-400/40';
-                    badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span><span>جاري الاتصال...</span>';
-                } else {
-                    badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border bg-rose-500/20 text-rose-200 border-rose-400/40';
-                    badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span><span>خطأ في الاتصال</span>';
-                }
-            }
-
-            function showFirebaseError(message) {
-                const banner = document.getElementById('firebase-error-banner');
-                const text = document.getElementById('firebase-error-text');
-                if (banner && text) {
-                    text.textContent = message;
-                    banner.classList.remove('hidden');
-                }
-            }
-
-            function hideFirebaseError() {
-                const banner = document.getElementById('firebase-error-banner');
-                if (banner) banner.classList.add('hidden');
-            }
-
-            function showToast(message, type) {
-                const container = document.getElementById('toast-container');
-                if (!container) return;
-                const toast = document.createElement('div');
-                const styles = {
-                    success: 'bg-emerald-600 text-white',
-                    error: 'bg-rose-600 text-white',
-                    info: 'navy-bg-gradient text-vantage-goldLight border border-vantage-gold/40'
-                };
-                toast.className = 'pointer-events-auto px-5 py-3 rounded-2xl shadow-xl text-sm font-bold flex items-center gap-2 fade-in ' + (styles[type] || styles.info);
-                toast.textContent = message;
-                container.appendChild(toast);
-
-                setTimeout(function () {
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateY(10px)';
-                    toast.style.transition = 'all 0.3s ease';
-                    setTimeout(function () { toast.remove(); }, 300);
-                }, 3200);
-            }
-
-            // ---------------------------------------------------------
-            // التوجيه بين واجهة الزبائن والواجهة السرية للموظف (#admin)
-            // ---------------------------------------------------------
-            function switchView(view) {
-                const customerView = document.getElementById('view-customer');
-                const adminView = document.getElementById('view-admin');
-
-                if (view === 'customer') {
-                    customerView.classList.remove('hidden');
-                    adminView.classList.add('hidden');
-                    if (selectedOrigin && lastSearchedQuery) {
-                        executeCustomerSearch(lastSearchedQuery, { silent: true });
-                    }
-                } else {
-                    customerView.classList.add('hidden');
-                    adminView.classList.remove('hidden');
-                    updateFirebaseStatusBadge(firebaseStatus);
-
-                    if (isAdminLoggedIn) {
-                        document.getElementById('admin-login-screen').classList.add('hidden');
-                        document.getElementById('admin-dashboard').classList.remove('hidden');
-                        renderAdminDashboard();
-                    } else {
-                        document.getElementById('admin-dashboard').classList.add('hidden');
-                        document.getElementById('admin-login-screen').classList.remove('hidden');
-                        setTimeout(function () {
-                            const userField = document.getElementById('admin-username');
-                            if (userField) userField.focus();
-                        }, 100);
-                    }
-                }
-            }
-
-            function handleHashRoute() {
-                if (window.location.hash === '#admin') {
-                    switchView('admin');
-                } else {
-                    switchView('customer');
-                }
-            }
-
-            function goToCustomerView(resetOrigin) {
-                if (window.location.hash === '#admin') {
-                    try {
-                        history.replaceState(null, '', window.location.pathname + window.location.search);
-                    } catch (e) {
-                        window.location.hash = '';
-                    }
-                }
-                if (resetOrigin) {
-                    resetOriginSelection();
-                }
-                switchView('customer');
-            }
-
-            // ---------------------------------------------------------
-            // واجهة الزبائن: اختيار المصدر والبحث الذكي
-            // ---------------------------------------------------------
-            function selectOrigin(origin) {
-                selectedOrigin = origin;
-                lastSearchedQuery = '';
-
-                document.getElementById('customer-step-1').classList.add('hidden');
-                document.getElementById('customer-step-2').classList.remove('hidden');
-                document.getElementById('tracking-result-container').classList.add('hidden');
-
-                const badge = document.getElementById('selected-origin-badge');
-                const title = document.getElementById('search-box-title');
-                const input = document.getElementById('tracking-input');
-                input.value = '';
-
-                if (origin === 'dubai') {
-                    badge.textContent = '🇦🇪 شحنات دبي';
-                    title.textContent = 'تتبع شحنات دبي';
-                    input.placeholder = 'أدخل رقم الشحنة مثال: دبي 1 أو 1';
-                } else {
-                    badge.textContent = '🇨🇳 شحنات الصين';
-                    title.textContent = 'تتبع شحنات الصين';
-                    input.placeholder = 'أدخل رقم الشحنة مثال: صين 10 أو 10';
-                }
-
-                setTimeout(function () { input.focus(); }, 100);
-            }
-
-            function resetOriginSelection() {
-                selectedOrigin = null;
-                lastSearchedQuery = '';
-                document.getElementById('customer-step-2').classList.add('hidden');
-                document.getElementById('customer-step-1').classList.remove('hidden');
-                document.getElementById('tracking-result-container').classList.add('hidden');
-            }
-
-            function handleCustomerSearch(event) {
-                event.preventDefault();
-                const query = document.getElementById('tracking-input').value;
-                executeCustomerSearch(query, { silent: false });
-            }
-
-            function executeCustomerSearch(rawQuery, options) {
-                const silent = options && options.silent;
-                if (!rawQuery || !rawQuery.trim()) return;
-                lastSearchedQuery = rawQuery;
-
-                const cleanedRaw = toEnglishDigits(rawQuery).trim().replace(/\s+/g, '').toLowerCase();
-                const targetCore = extractCoreNumber(rawQuery).toLowerCase();
-                const targetFormatted = formatShipmentCode(selectedOrigin, rawQuery).toLowerCase();
-
-                const match = shipments.find(function (s) {
-                    if (s.origin !== selectedOrigin) return false;
-                    const sCore = extractCoreNumber(s.number || s.code).toLowerCase();
-                    const sCompact = toEnglishDigits(s.code).replace(/\s+/g, '').toLowerCase();
-                    return (
-                        String(s.code || '').toLowerCase() === targetFormatted ||
-                        (targetCore && sCore === targetCore) ||
-                        sCompact === cleanedRaw
-                    );
-                });
-
-                renderTrackingResult(match, rawQuery);
-                if (!silent && match) {
-                    const resEl = document.getElementById('tracking-result-container');
-                    if (resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            }
-
-            function renderTrackingResult(shipment, rawQuery) {
-                const container = document.getElementById('tracking-result-container');
-                container.classList.remove('hidden');
-
-                if (!shipment) {
-                    const extraHint = !isFirebaseLoaded && firebaseStatus === 'connecting'
-                        ? 'جاري تحميل البيانات من الخادم، يرجى الانتظار لحظة ثم المحاولة مجدداً.'
-                        : 'لا توجد شحنة مسجلة بهذا الرقم ضمن <span class="font-bold text-vantage-navyDark">شحنات ' + escapeHTML(getOriginArabicName(selectedOrigin)) + '</span>. يرجى التأكد من الرقم أو اختيار المصدر الصحيح.';
-
-                    container.innerHTML =
-                        '<div class="bg-white rounded-3xl shadow-md border border-rose-200 p-8 text-center">' +
-                        '<div class="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">' +
-                        '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
-                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />' +
-                        '</svg></div>' +
-                        '<h3 class="text-xl font-extrabold text-vantage-navyDark mb-2">لم يتم العثور على الشحنة "' + escapeHTML(rawQuery) + '"</h3>' +
-                        '<p class="text-slate-500 text-sm max-w-md mx-auto">' + extraHint + '</p>' +
-                        '</div>';
-                    return;
-                }
-
-                const stageObj = STAGE_MAP[shipment.status] || STAGES[0];
-                const currentStageIdx = getStageIndex(shipment.status);
-                const isDubai = shipment.origin === 'dubai';
-
-                // بناء شريط التقدم للمراحل الثلاث المعتمدة
-                const stepperHTML = STAGES.map(function (stage, idx) {
-                    const isCompleted = idx < currentStageIdx;
-                    const isCurrent = idx === currentStageIdx;
-
-                    let circleClass = 'bg-slate-100 text-slate-400 border-slate-300';
-                    let textClass = 'text-slate-400 font-semibold';
-                    let iconHTML = '<span class="text-sm font-extrabold">' + (idx + 1) + '</span>';
-
-                    if (isCompleted) {
-                        circleClass = 'gold-bg-gradient text-vantage-navyDark border-vantage-goldDark shadow-md';
-                        textClass = 'text-vantage-goldDark font-extrabold';
-                        iconHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
-                    } else if (isCurrent) {
-                        circleClass = 'navy-bg-gradient text-vantage-goldLight border-vantage-gold ring-4 ring-vantage-gold/30 shadow-lg scale-110';
-                        textClass = 'text-vantage-navyDark font-extrabold';
-                        iconHTML = '<span class="w-3 h-3 rounded-full bg-vantage-goldLight animate-pulse"></span>';
-                    }
-
-                    const connectorLine = idx < STAGES.length - 1
-                        ? '<div class="hidden sm:block flex-1 h-1.5 rounded-full mx-2 ' + (idx < currentStageIdx ? 'bg-vantage-gold' : 'bg-slate-200') + '"></div>'
-                        : '';
-
-                    return (
-                        '<div class="flex sm:flex-col items-center gap-3 sm:gap-2.5 shrink-0">' +
-                        '<div class="w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ' + circleClass + '">' + iconHTML + '</div>' +
-                        '<span class="text-sm ' + textClass + '">' + escapeHTML(stage.label) + '</span>' +
-                        '</div>' + connectorLine
-                    );
-                }).join('');
-
-                // سجل التحديثات الزمني
-                const historyList = Array.isArray(shipment.history) ? shipment.history.slice().reverse() : [];
-                const historyHTML = historyList.length > 0 ? historyList.map(function (h, i) {
-                    const hLabel = STAGE_MAP[h.status] ? STAGE_MAP[h.status].label : h.status;
-                    const hDate = h.date || h.timestamp;
-                    return (
-                        '<div class="flex gap-3 pb-4 ' + (i !== historyList.length - 1 ? 'border-r-2 border-slate-200 mr-2 pr-5' : 'mr-2 pr-5') + ' relative">' +
-                        '<div class="w-3 h-3 rounded-full ' + (i === 0 ? 'bg-vantage-goldDark ring-4 ring-amber-100' : 'bg-slate-300') + ' absolute -right-[7px] top-1.5"></div>' +
-                        '<div class="flex-1 bg-slate-50 rounded-2xl p-3.5 border border-slate-100">' +
-                        '<div class="flex flex-wrap justify-between items-center gap-2 mb-1">' +
-                        '<span class="text-xs font-extrabold text-vantage-navyDark">' + escapeHTML(hLabel) + '</span>' +
-                        '<span class="text-[11px] text-slate-400 font-semibold">' + escapeHTML(formatDateTimeArabic(hDate)) + '</span>' +
-                        '</div>' +
-                        (h.note ? '<p class="text-xs text-slate-600 leading-relaxed">' + escapeHTML(h.note) + '</p>' : '') +
-                        '</div></div>'
-                    );
-                }).join('') : '<p class="text-xs text-slate-400">لا يوجد سجل تحديثات سابق.</p>';
-
-                const noteBlock = shipment.note
-                    ? '<div class="bg-amber-50/70 border border-vantage-gold/40 rounded-2xl p-4 flex items-start gap-3">' +
-                      '<div class="navy-bg-gradient text-vantage-goldLight p-2 rounded-xl shrink-0 mt-0.5">' +
-                      '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' +
-                      '</div><div>' +
-                      '<p class="text-xs font-extrabold text-vantage-goldDark mb-0.5">آخر ملاحظة من فريق Vantage Logistics:</p>' +
-                      '<p class="text-sm font-bold text-vantage-navyDark leading-relaxed">' + escapeHTML(shipment.note) + '</p>' +
-                      '</div></div>'
-                    : '';
-
-                container.innerHTML =
-                    '<div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">' +
-                    '<div class="navy-bg-gradient text-white p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-vantage-gold/30">' +
-                    '<div>' +
-                    '<div class="flex flex-wrap items-center gap-2.5 mb-2">' +
-                    '<span class="px-3 py-1 rounded-full text-xs font-extrabold bg-vantage-gold/20 text-vantage-goldLight border border-vantage-gold/40">' + (isDubai ? '🇦🇪 دبي' : '🇨🇳 الصين') + '</span>' +
-                    '<span class="inline-flex items-center gap-1.5 text-xs text-emerald-300 font-bold"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>تحديث مباشر</span></span>' +
-                    '</div>' +
-                    '<h3 class="text-3xl font-extrabold tracking-tight gold-text-gradient">شحنة رقم: ' + escapeHTML(shipment.code) + '</h3>' +
-                    '</div>' +
-                    '<div class="px-4 py-2 rounded-2xl text-sm font-extrabold border ' + stageObj.badgeClass + ' shadow-sm">' + escapeHTML(stageObj.label) + '</div>' +
-                    '</div>' +
-                    '<div class="p-6 sm:p-8 space-y-8">' +
-                    '<div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">' +
-                    '<p class="text-xs text-slate-500 font-bold">تاريخ ووقت آخر تحديث</p>' +
-                    '<p class="text-sm font-extrabold text-vantage-navyDark">' + escapeHTML(formatDateTimeArabic(shipment.updatedAt)) + '</p>' +
-                    '</div>' +
-                    noteBlock +
-                    '<div>' +
-                    '<h4 class="text-sm font-extrabold text-vantage-navyDark mb-5">مراحل تتبع الشحنة</h4>' +
-                    '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-2 bg-slate-50/80 p-5 rounded-2xl border border-slate-100">' + stepperHTML + '</div>' +
-                    '</div>' +
-                    '<div class="pt-4 border-t border-slate-100">' +
-                    '<h4 class="text-sm font-extrabold text-vantage-navyDark mb-4">سجل التحديثات</h4>' +
-                    '<div class="space-y-1">' + historyHTML + '</div>' +
-                    '</div></div></div>';
-            }
-
-            // ---------------------------------------------------------
-            // لوحة الموظف: تسجيل الدخول، الخروج، والإدارة
+            // لوحة الموظف: تسجيل الدخول عبر Firebase Auth، الخروج، والإدارة
             // ---------------------------------------------------------
             function togglePasswordVisibility() {
                 const input = document.getElementById('admin-password');
@@ -1024,360 +635,105 @@
                 }
             }
 
-            function handleAdminLogin(event) {
+            function getAuthErrorMessage(code) {
+                switch (code) {
+                    case 'auth/invalid-credential':
+                    case 'auth/wrong-password':
+                    case 'auth/user-not-found':
+                    case 'auth/invalid-email':
+                        return 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق والمحاولة مجدداً.';
+                    case 'auth/too-many-requests':
+                        return 'تم حظر المحاولات مؤقتاً لكثرة المحاولات الخاطئة. يرجى الانتظار قليلاً ثم المحاولة.';
+                    case 'auth/network-request-failed':
+                        return 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.';
+                    case 'auth/user-disabled':
+                        return 'تم تعطيل هذا الحساب. يرجى مراجعة الإدارة.';
+                    default:
+                        return 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+                }
+            }
+
+            async function handleAdminLogin(event) {
                 event.preventDefault();
-                const username = document.getElementById('admin-username').value.trim();
+                const rawUsername = document.getElementById('admin-username').value.trim();
                 const password = document.getElementById('admin-password').value;
                 const rememberMe = document.getElementById('admin-remember').checked;
                 const errorEl = document.getElementById('admin-login-error');
+                const loginBtn = document.getElementById('admin-login-btn');
 
-                if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-                    isAdminLoggedIn = true;
-                    setStoredRemember(rememberMe);
-                    errorEl.classList.add('hidden');
+                errorEl.classList.add('hidden');
+
+                if (!authApi) {
+                    errorEl.textContent = 'جاري تهيئة الاتصال بخدمة المصادقة، يرجى الانتظار لحظة والمحاولة مجدداً.';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                // تحويل اسم المستخدم تلقائياً إلى بريد إلكتروني إذا لم يحتوي على @
+                const email = rawUsername.indexOf('@') !== -1
+                    ? rawUsername.toLowerCase()
+                    : (rawUsername.toLowerCase() + '@vantage.com');
+
+                setButtonLoading(loginBtn, true, 'جاري التحقق...');
+
+                try {
+                    const persistence = rememberMe
+                        ? authApi.browserLocalPersistence
+                        : authApi.browserSessionPersistence;
+
+                    await authApi.setPersistence(authApi.auth, persistence);
+                    await authApi.signInWithEmailAndPassword(authApi.auth, email, password);
+
                     document.getElementById('admin-username').value = '';
                     document.getElementById('admin-password').value = '';
-                    document.getElementById('admin-login-screen').classList.add('hidden');
-                    document.getElementById('admin-dashboard').classList.remove('hidden');
-                    updateFirebaseStatusBadge(firebaseStatus);
-                    renderAdminDashboard();
                     showToast('تم تسجيل الدخول إلى لوحة الموظف بنجاح', 'success');
-                } else {
+                } catch (err) {
+                    console.error('Firebase Auth login error:', err);
+                    errorEl.textContent = getAuthErrorMessage(err && err.code);
                     errorEl.classList.remove('hidden');
                     document.getElementById('admin-password').value = '';
                     document.getElementById('admin-password').focus();
+                } finally {
+                    setButtonLoading(loginBtn, false);
                 }
             }
 
-            function handleAdminLogout() {
-                isAdminLoggedIn = false;
-                setStoredRemember(false);
-                document.getElementById('admin-dashboard').classList.add('hidden');
-                document.getElementById('admin-login-screen').classList.remove('hidden');
-                showToast('تم تسجيل الخروج بنجاح', 'info');
+            async function handleAdminLogout() {
+                if (!authApi) return;
+                try {
+                    await authApi.signOut(authApi.auth);
+                    showToast('تم تسجيل الخروج بنجاح', 'info');
+                } catch (err) {
+                    console.error('Firebase Auth signOut error:', err);
+                    showToast('حدث خطأ أثناء تسجيل الخروج، حاول مجدداً', 'error');
+                }
             }
 
-            function updateNewCodePreview() {
-                const origin = document.getElementById('add-origin').value;
-                const num = document.getElementById('add-number').value;
-                const prefix = origin === 'dubai' ? 'دبي' : 'صين';
-                document.getElementById('new-code-preview').textContent = num.trim() ? formatShipmentCode(origin, num) : (prefix + ' ...');
-            }
-
-            function setAdminOriginFilter(filter) {
-                currentOriginFilter = filter;
-                ['all', 'dubai', 'china'].forEach(function (key) {
-                    const btn = document.getElementById('filter-origin-' + key);
-                    if (!btn) return;
-                    const isActive = key === filter;
-                    btn.className = isActive
-                        ? 'flex-1 sm:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold bg-vantage-navy text-vantage-goldLight shadow-sm transition-all cursor-pointer'
-                        : 'flex-1 sm:flex-none px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-600 hover:text-vantage-navyDark transition-all cursor-pointer';
-                });
-                renderAdminTable();
-            }
-
-            function renderAdminDashboard() {
-                document.getElementById('stat-total').textContent = shipments.length;
-                document.getElementById('stat-dubai').textContent = shipments.filter(function (s) { return s.origin === 'dubai'; }).length;
-                document.getElementById('stat-china').textContent = shipments.filter(function (s) { return s.origin === 'china'; }).length;
-                document.getElementById('stat-shipped').textContent = shipments.filter(function (s) { return s.status === 'shipped'; }).length;
-                document.getElementById('stat-ready').textContent = shipments.filter(function (s) { return s.status === 'ready'; }).length;
-                document.getElementById('stat-delivered').textContent = shipments.filter(function (s) { return s.status === 'delivered'; }).length;
-
-                const seedBanner = document.getElementById('seed-data-banner');
-                if (isFirebaseLoaded && firebaseStatus === 'connected' && shipments.length === 0) {
-                    seedBanner.classList.remove('hidden');
+            function updateCurrentUserBadge() {
+                const badge = document.getElementById('admin-current-user');
+                if (!badge) return;
+                if (currentAuthUser && currentAuthUser.email) {
+                    badge.textContent = currentAuthUser.email;
+                    badge.classList.remove('hidden');
                 } else {
-                    seedBanner.classList.add('hidden');
+                    badge.textContent = '';
+                    badge.classList.add('hidden');
                 }
-
-                renderAdminTable();
             }
-
-            function renderAdminTable() {
-                const tbody = document.getElementById('admin-shipments-tbody');
-                const emptyState = document.getElementById('admin-empty-state');
-                const statusFilter = document.getElementById('admin-status-filter').value;
-                const searchTerm = toEnglishDigits(document.getElementById('admin-search-input').value || '').trim().toLowerCase();
-
-                const filtered = shipments.filter(function (s) {
-                    if (currentOriginFilter !== 'all' && s.origin !== currentOriginFilter) return false;
-                    if (statusFilter !== 'all' && s.status !== statusFilter) return false;
-                    if (searchTerm) {
-                        const statusLabel = STAGE_MAP[s.status] ? STAGE_MAP[s.status].label : '';
-                        const originName = getOriginArabicName(s.origin);
-                        const hay = (s.code + ' ' + s.number + ' ' + originName + ' ' + (s.note || '') + ' ' + statusLabel).toLowerCase();
-                        return hay.indexOf(searchTerm) !== -1;
-                    }
-                    return true;
-                });
-
-                if (filtered.length === 0) {
-                    tbody.innerHTML = '';
-                    emptyState.classList.remove('hidden');
-                    return;
-                }
-
-                emptyState.classList.add('hidden');
-                tbody.innerHTML = filtered.map(function (s) {
-                    const isDubai = s.origin === 'dubai';
-                    const badgeClass = isDubai
-                        ? 'bg-amber-50 text-vantage-navyDark border-vantage-gold/60'
-                        : 'bg-slate-100 text-vantage-navyDark border-slate-300';
-
-                    const statusOptions = STAGES.map(function (st) {
-                        return '<option value="' + st.key + '"' + (st.key === s.status ? ' selected' : '') + '>' + escapeHTML(st.label) + '</option>';
-                    }).join('');
-
-                    const safeId = escapeHTML(s.id);
-                    const safeCode = escapeHTML(s.code);
-
-                    return (
-                        '<tr class="hover:bg-slate-50/90 transition-colors" data-shipment-id="' + safeId + '">' +
-                        '<td class="py-3.5 px-4 whitespace-nowrap"><span class="px-3 py-1.5 rounded-lg text-xs font-extrabold border ' + badgeClass + '">' + safeCode + '</span></td>' +
-                        '<td class="py-3.5 px-4 whitespace-nowrap font-bold text-vantage-navyDark text-xs">' + (isDubai ? '🇦🇪 دبي' : '🇨🇳 الصين') + '</td>' +
-                        '<td class="py-3.5 px-4"><select data-role="row-status" class="w-full min-w-[175px] px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-vantage-navyDark focus:outline-none focus:border-vantage-gold">' + statusOptions + '</select></td>' +
-                        '<td class="py-3.5 px-4"><input type="text" data-role="row-note" value="' + escapeHTML(s.note || '') + '" placeholder="أضف ملاحظة..." class="w-full min-w-[200px] px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-vantage-navyDark focus:outline-none focus:border-vantage-gold"></td>' +
-                        '<td class="py-3.5 px-4 whitespace-nowrap text-xs text-slate-500 font-semibold">' + escapeHTML(formatDateTimeArabic(s.updatedAt)) + '</td>' +
-                        '<td class="py-3.5 px-4 whitespace-nowrap text-center">' +
-                        '<div class="flex items-center justify-center gap-2">' +
-                        '<button type="button" data-action="update" data-id="' + safeId + '" class="px-3.5 py-2 rounded-xl text-xs font-extrabold text-vantage-navyDark gold-bg-gradient shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-60 cursor-pointer">تحديث</button>' +
-                        '<button type="button" data-action="delete" data-id="' + safeId + '" data-code="' + safeCode + '" class="px-3 py-2 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer">حذف</button>' +
-                        '</div></td></tr>'
-                    );
-                }).join('');
-            }
-
+// ... existing code ... -->
             // ---------------------------------------------------------
-            // عمليات Firestore (إضافة، تحديث، حذف، بيانات تجريبية)
-            // ---------------------------------------------------------
-            async function seedSampleShipments() {
-                if (!firestoreApi) {
-                    showToast('الاتصال بـ Firebase غير متاح حالياً.', 'error');
-                    return;
-                }
-                const btn = document.getElementById('seed-sample-btn');
-                setButtonLoading(btn, true, 'جاري الإضافة إلى Firebase...');
-                const now = new Date().toISOString();
-                const twoDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString();
-
-                const samples = [
-                    {
-                        origin: 'dubai',
-                        number: '1',
-                        code: 'دبي 1',
-                        status: 'ready',
-                        note: 'وصلت الشحنة إلى مكتب Vantage Logistics وهي جاهزة للاستلام.',
-                        updatedAt: now,
-                        history: [
-                            { status: 'shipped', note: 'انطلقت الشحنة من دبي.', date: twoDaysAgo },
-                            { status: 'ready', note: 'وصلت الشحنة إلى مكتب Vantage Logistics وهي جاهزة للاستلام.', date: now }
-                        ]
-                    },
-                    {
-                        origin: 'china',
-                        number: '10',
-                        code: 'صين 10',
-                        status: 'shipped',
-                        note: 'تم شحن البضاعة من الصين وهي الآن في الطريق.',
-                        updatedAt: now,
-                        history: [
-                            { status: 'shipped', note: 'تم شحن البضاعة من الصين وهي الآن في الطريق.', date: now }
-                        ]
-                    }
-                ];
-
-                try {
-                    for (let i = 0; i < samples.length; i++) {
-                        await firestoreApi.addDoc(firestoreApi.shipmentsCollection, samples[i]);
-                    }
-                    showToast('تمت إضافة الشحنات التجريبية (دبي 1، صين 10) إلى Firebase بنجاح', 'success');
-                } catch (err) {
-                    console.error('Error seeding samples:', err);
-                    showToast('تعذر إضافة البيانات التجريبية. تحقق من صلاحيات Firestore.', 'error');
-                } finally {
-                    setButtonLoading(btn, false);
-                }
-            }
-
-            async function handleAddShipment(event) {
-                event.preventDefault();
-                if (!firestoreApi) {
-                    showToast('الاتصال بـ Firebase غير متاح حالياً. تحقق من الإنترنت.', 'error');
-                    return;
-                }
-
-                const origin = document.getElementById('add-origin').value;
-                const rawNumber = document.getElementById('add-number').value;
-                const coreNumber = extractCoreNumber(rawNumber);
-                const formattedCode = formatShipmentCode(origin, rawNumber);
-                const status = document.getElementById('add-status').value;
-                const note = document.getElementById('add-note').value.trim();
-                const now = new Date().toISOString();
-
-                if (!coreNumber) {
-                    showToast('يرجى إدخال رقم الشحنة بشكل صحيح', 'error');
-                    return;
-                }
-
-                const duplicate = shipments.find(function (s) {
-                    return s.origin === origin && String(s.code || '').toLowerCase() === formattedCode.toLowerCase();
-                });
-                if (duplicate) {
-                    showToast('الشحنة "' + formattedCode + '" موجودة مسبقاً، يمكنك تحديثها من الجدول أدناه.', 'error');
-                    return;
-                }
-
-                const newShipment = {
-                    origin: origin,
-                    number: coreNumber,
-                    code: formattedCode,
-                    status: status,
-                    note: note,
-                    updatedAt: now,
-                    history: [
-                        {
-                            status: status,
-                            note: note || 'تم تسجيل الشحنة في النظام.',
-                            date: now
-                        }
-                    ]
-                };
-
-                const btn = document.getElementById('add-shipment-btn');
-                setButtonLoading(btn, true, 'جاري الحفظ...');
-                try {
-                    await firestoreApi.addDoc(firestoreApi.shipmentsCollection, newShipment);
-                    document.getElementById('add-shipment-form').reset();
-                    updateNewCodePreview();
-                    showToast('تمت إضافة الشحنة "' + formattedCode + '" وحفظها في Firebase بنجاح', 'success');
-                } catch (err) {
-                    console.error('Error adding shipment:', err);
-                    showToast('تعذر حفظ الشحنة في Firebase. تحقق من صلاحيات Firestore.', 'error');
-                } finally {
-                    setButtonLoading(btn, false);
-                }
-            }
-
-            async function handleRowUpdate(shipmentId, rowEl, btn) {
-                if (!firestoreApi) {
-                    showToast('الاتصال بـ Firebase غير متاح حالياً.', 'error');
-                    return;
-                }
-                const target = shipments.find(function (s) { return s.id === shipmentId; });
-                if (!target || !rowEl) return;
-
-                const statusEl = rowEl.querySelector('[data-role="row-status"]');
-                const noteEl = rowEl.querySelector('[data-role="row-note"]');
-                const newStatus = statusEl ? statusEl.value : target.status;
-                const newNote = noteEl ? noteEl.value.trim() : '';
-                const now = new Date().toISOString();
-
-                const updatedHistory = Array.isArray(target.history) ? target.history.slice() : [];
-                updatedHistory.push({
-                    status: newStatus,
-                    note: newNote || 'تحديث حالة الشحنة.',
-                    date: now
-                });
-
-                setButtonLoading(btn, true, 'جاري التحديث...');
-                try {
-                    await firestoreApi.updateDoc(firestoreApi.doc(firestoreApi.db, 'shipments', shipmentId), {
-                        status: newStatus,
-                        note: newNote,
-                        updatedAt: now,
-                        history: updatedHistory
-                    });
-                    showToast('تم تحديث الشحنة "' + target.code + '" بنجاح', 'success');
-                } catch (err) {
-                    console.error('Error updating shipment:', err);
-                    setButtonLoading(btn, false);
-                    showToast('تعذر تحديث الشحنة في Firebase، حاول مجدداً', 'error');
-                }
-            }
-
-            function openDeleteModal(id, code) {
-                pendingDeleteId = id;
-                document.getElementById('delete-shipment-code').textContent = code || '';
-                document.getElementById('delete-modal').classList.remove('hidden');
-            }
-
-            function closeDeleteModal() {
-                pendingDeleteId = null;
-                document.getElementById('delete-modal').classList.add('hidden');
-            }
-
-            async function confirmDeleteShipment() {
-                if (!pendingDeleteId) return;
-                if (!firestoreApi) {
-                    showToast('الاتصال بـ Firebase غير متاح حالياً.', 'error');
-                    return;
-                }
-
-                const idToDelete = pendingDeleteId;
-                const btn = document.getElementById('confirm-delete-btn');
-                setButtonLoading(btn, true, 'جاري الحذف...');
-                try {
-                    await firestoreApi.deleteDoc(firestoreApi.doc(firestoreApi.db, 'shipments', idToDelete));
-                    closeDeleteModal();
-                    showToast('تم حذف الشحنة من Firebase بنجاح', 'info');
-                } catch (err) {
-                    console.error('Error deleting shipment:', err);
-                    showToast('تعذر حذف الشحنة من Firebase', 'error');
-                } finally {
-                    setButtonLoading(btn, false);
-                }
-            }
-
-            // ---------------------------------------------------------
-            // تصدير البيانات إلى Excel (CSV مع UTF-8 BOM وبدون اسم الزبون)
-            // ---------------------------------------------------------
-            function exportShipmentsCSV() {
-                if (shipments.length === 0) {
-                    showToast('لا توجد شحنات لتصديرها', 'info');
-                    return;
-                }
-
-                const headers = ['رقم الشحنة', 'المصدر', 'الحالة', 'الملاحظة', 'آخر تحديث'];
-                const rows = shipments.map(function (s) {
-                    const cells = [
-                        s.code,
-                        getOriginArabicName(s.origin),
-                        STAGE_MAP[s.status] ? STAGE_MAP[s.status].label : s.status,
-                        s.note || '',
-                        formatDateTimeArabic(s.updatedAt)
-                    ];
-                    return cells.map(function (cell) {
-                        return '"' + String(cell).replace(/"/g, '""') + '"';
-                    }).join(',');
-                });
-
-                const csvContent = '\uFEFF' + [headers.join(',')].concat(rows).join('\n');
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'Vantage_Logistics_Shipments_' + new Date().toISOString().slice(0, 10) + '.csv';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-
-                showToast('تم تصدير ملف Excel (CSV) بنجاح', 'success');
-            }
-
-            // ---------------------------------------------------------
-            // التحميل الديناميكي الآمن لـ Firebase Firestore v13.4.0
+            // التحميل الديناميكي الآمن لـ Firebase (App + Firestore + Auth)
             // ---------------------------------------------------------
             async function initFirebase() {
                 updateFirebaseStatusBadge('connecting');
                 try {
-                    const appMod = await import('https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js');
-                    const fsMod = await import('https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js');
+                    const appMod = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js');
+                    const fsMod = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                    const authMod = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js');
 
                     const app = appMod.initializeApp(firebaseConfig);
                     const db = fsMod.getFirestore(app);
+                    const auth = authMod.getAuth(app);
                     const shipmentsCollection = fsMod.collection(db, 'shipments');
 
                     firestoreApi = {
@@ -1389,135 +745,26 @@
                         doc: fsMod.doc
                     };
 
+                    authApi = {
+                        auth: auth,
+                        signInWithEmailAndPassword: authMod.signInWithEmailAndPassword,
+                        signOut: authMod.signOut,
+                        setPersistence: authMod.setPersistence,
+                        browserLocalPersistence: authMod.browserLocalPersistence,
+                        browserSessionPersistence: authMod.browserSessionPersistence
+                    };
+
+                    // الاستماع لحالة المصادقة لفتح لوحة الموظف تلقائياً عند وجود جلسة نشطة
+                    authMod.onAuthStateChanged(auth, function (user) {
+                        currentAuthUser = user || null;
+                        isAdminLoggedIn = Boolean(user);
+                        updateCurrentUserBadge();
+                        if (window.location.hash === '#admin') {
+                            switchView('admin');
+                        }
+                    });
+
                     fsMod.onSnapshot(
                         shipmentsCollection,
                         function (snapshot) {
-                            const list = [];
-                            snapshot.forEach(function (docSnap) {
-                                const data = docSnap.data() || {};
-                                list.push(Object.assign({ id: docSnap.id }, data));
-                            });
-
-                            // ترتيب الشحنات حسب آخر تحديث (الأحدث أولاً)
-                            list.sort(function (a, b) {
-                                const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-                                const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-                                return tB - tA;
-                            });
-
-                            shipments = list;
-                            isFirebaseLoaded = true;
-                            updateFirebaseStatusBadge('connected');
-                            hideFirebaseError();
-
-                            if (isAdminLoggedIn && window.location.hash === '#admin') {
-                                renderAdminDashboard();
-                            }
-                            if (selectedOrigin && lastSearchedQuery) {
-                                executeCustomerSearch(lastSearchedQuery, { silent: true });
-                            }
-                        },
-                        function (error) {
-                            console.error('Firestore onSnapshot error:', error);
-                            updateFirebaseStatusBadge('error');
-                            if (error && error.code === 'permission-denied') {
-                                showFirebaseError('تم رفض صلاحية الوصول إلى Firestore. يرجى التأكد من تفعيل وضع الاختبار (Test Mode) أو ضبط قواعد Firestore Rules في لوحة تحكم Firebase.');
-                            } else {
-                                showFirebaseError('تعذر الاتصال بقاعدة بيانات Firebase. يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً.');
-                            }
-                        }
-                    );
-                } catch (err) {
-                    console.error('Firebase dynamic import failed:', err);
-                    updateFirebaseStatusBadge('error');
-                    showFirebaseError('تعذر تحميل مكتبة Firebase. تحقق من اتصال الإنترنت أو إعدادات الشبكة.');
-                }
-            }
-
-            // ---------------------------------------------------------
-            // ربط جميع الأزرار والنماذج عند اكتمال تحميل الصفحة
-            // ---------------------------------------------------------
-            document.addEventListener('DOMContentLoaded', function () {
-                // الشعار وزر تتبع الشحنات في الهيدر
-                document.getElementById('brand-logo-btn').addEventListener('click', function () {
-                    goToCustomerView(true);
-                });
-                document.getElementById('nav-customer-btn').addEventListener('click', function () {
-                    goToCustomerView(true);
-                });
-
-                // بطاقتا اختيار المصدر في واجهة الزبائن
-                document.getElementById('card-origin-dubai').addEventListener('click', function () {
-                    selectOrigin('dubai');
-                });
-                document.getElementById('card-origin-china').addEventListener('click', function () {
-                    selectOrigin('china');
-                });
-
-                // زر العودة لاختيار المصدر ونموذج البحث للزبون
-                document.getElementById('btn-back-origin').addEventListener('click', resetOriginSelection);
-                document.getElementById('tracking-search-form').addEventListener('submit', handleCustomerSearch);
-
-                // شاشة دخول الموظف
-                document.getElementById('admin-login-form').addEventListener('submit', handleAdminLogin);
-                document.getElementById('toggle-password-btn').addEventListener('click', togglePasswordVisibility);
-
-                // أزرار ترويسة لوحة الموظف
-                document.getElementById('btn-preview-customer').addEventListener('click', function () {
-                    goToCustomerView(false);
-                });
-                document.getElementById('btn-export-csv').addEventListener('click', exportShipmentsCSV);
-                document.getElementById('btn-admin-logout').addEventListener('click', handleAdminLogout);
-
-                // زر إضافة البيانات التجريبية
-                document.getElementById('seed-sample-btn').addEventListener('click', seedSampleShipments);
-
-                // نموذج إضافة شحنة جديدة
-                document.getElementById('add-origin').addEventListener('change', updateNewCodePreview);
-                document.getElementById('add-number').addEventListener('input', updateNewCodePreview);
-                document.getElementById('add-shipment-form').addEventListener('submit', handleAddShipment);
-
-                // فلاتر وبحث لوحة الموظف
-                document.getElementById('filter-origin-all').addEventListener('click', function () {
-                    setAdminOriginFilter('all');
-                });
-                document.getElementById('filter-origin-dubai').addEventListener('click', function () {
-                    setAdminOriginFilter('dubai');
-                });
-                document.getElementById('filter-origin-china').addEventListener('click', function () {
-                    setAdminOriginFilter('china');
-                });
-                document.getElementById('admin-status-filter').addEventListener('change', renderAdminTable);
-                document.getElementById('admin-search-input').addEventListener('input', renderAdminTable);
-
-                // تفويض الأحداث (Event Delegation) لأزرار التحديث والحذف داخل جدول الشحنات
-                document.getElementById('admin-shipments-tbody').addEventListener('click', function (e) {
-                    const btn = e.target.closest('button[data-action]');
-                    if (!btn) return;
-                    const action = btn.getAttribute('data-action');
-                    const id = btn.getAttribute('data-id');
-                    if (action === 'update') {
-                        const rowEl = btn.closest('tr');
-                        handleRowUpdate(id, rowEl, btn);
-                    } else if (action === 'delete') {
-                        const code = btn.getAttribute('data-code');
-                        openDeleteModal(id, code);
-                    }
-                });
-
-                // نافذة تأكيد الحذف
-                document.getElementById('cancel-delete-btn').addEventListener('click', closeDeleteModal);
-                document.getElementById('confirm-delete-btn').addEventListener('click', confirmDeleteShipment);
-
-                // الاستماع لتغير الهاش في الرابط (#admin)
-                window.addEventListener('hashchange', handleHashRoute);
-
-                // التهيئة الأولية للواجهة ثم تحميل Firebase
-                updateNewCodePreview();
-                handleHashRoute();
-                initFirebase();
-            });
-        })();
-    </script>
-</body>
-</html>
+// ... existing code ... -->
