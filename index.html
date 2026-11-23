@@ -84,7 +84,7 @@
             <div class="flex flex-col sm:flex-row justify-between items-center py-3.5 sm:h-24 gap-3">
                 
                 <!-- شعار Vantage Logistics المرسوم بدقة SVG -->
-                <div class="flex items-center gap-3.5 cursor-pointer group" onclick="switchView('customer'); resetOriginSelection();">
+                <div class="flex items-center gap-3.5 cursor-pointer group" onclick="goToCustomerView(); resetOriginSelection();">
                     <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-vantage-navyDark border border-vantage-gold/35 flex items-center justify-center p-1.5 shadow-lg group-hover:border-vantage-gold/75 transition-all">
                         <svg viewBox="0 0 120 115" class="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-label="Vantage Logistics Logo">
                             <defs>
@@ -113,19 +113,13 @@
                     </div>
                 </div>
 
-                <!-- أزرار التنقل بين واجهة الزبائن ودخول الموظف -->
-                <nav class="flex items-center gap-2.5 w-full sm:w-auto justify-center">
-                    <button id="nav-customer-btn" onclick="switchView('customer')" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 gold-bg-gradient text-vantage-navyDark shadow-md">
+                <!-- زر تتبع الشحنات فقط (تم إخفاء زر دخول الموظف تماماً عن الزبائن) -->
+                <nav class="flex items-center justify-center">
+                    <button id="nav-customer-btn" onclick="goToCustomerView(); resetOriginSelection();" class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 gold-bg-gradient text-vantage-navyDark shadow-md">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         <span>تتبع الشحنات</span>
-                    </button>
-                    <button id="nav-admin-btn" onclick="switchView('admin')" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 bg-vantage-navyLight/90 text-vantage-goldLight border border-vantage-gold/30 hover:border-vantage-gold hover:bg-vantage-navy">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        <span>دخول الموظف</span>
                     </button>
                 </nav>
             </div>
@@ -326,6 +320,15 @@
                         اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق والمحاولة مجدداً.
                     </div>
 
+                    <!-- خيار تذكرني (البقاء مسجل الدخول) -->
+                    <div class="flex items-center justify-between pt-1">
+                        <label for="admin-remember" class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                            <input type="checkbox" id="admin-remember" checked
+                                class="w-4 h-4 rounded border-slate-300 text-vantage-navy focus:ring-vantage-gold accent-[#112233]">
+                            <span class="text-xs font-bold text-slate-700">تذكرني (البقاء مسجل الدخول)</span>
+                        </label>
+                    </div>
+
                     <button type="submit" class="w-full py-3.5 navy-bg-gradient hover:opacity-95 text-vantage-goldLight font-extrabold rounded-2xl shadow-lg border border-vantage-gold/30 transition-all">
                         تسجيل الدخول
                     </button>
@@ -349,6 +352,13 @@
                         <p class="text-slate-300 text-sm mt-1.5">أضف شحنات جديدة وحدّث حالات الشحنات اليومية لتظهر للزبائن في نفس اللحظة.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+                        <button onclick="goToCustomerView()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-vantage-navyLight hover:bg-slate-700 text-white border border-slate-500/50 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>معاينة صفحة الزبائن</span>
+                        </button>
                         <button onclick="exportShipmentsCSV()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-vantage-navyLight hover:bg-slate-700 text-vantage-goldLight border border-vantage-gold/35 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -590,6 +600,7 @@
             username: 'Admin1',
             password: 'V@ntage2026'
         };
+        const ADMIN_REMEMBER_KEY = 'vantage_admin_remembered';
 
         // المراحل الثلاث المعتمدة فقط
         const STAGES = [
@@ -609,57 +620,57 @@
         let isFirebaseLoaded = false;
         let isFirebaseConnected = false;
         let selectedOrigin = null; // 'dubai' أو 'china'
-        let isAdminLoggedIn = false;
+        let isAdminLoggedIn = localStorage.getItem(ADMIN_REMEMBER_KEY) === 'true';
         let currentOriginFilter = 'all';
         let pendingDeleteId = null;
         let lastSearchedQuery = '';
 
         // ---------------------------------------------------------
-        // الاستماع اللحظي الفوري (Real-time) لمجموعة shipments في Firestore
+        // التنقل السري عبر الرابط (#admin) بين واجهة الزبائن ولوحة الموظف
         // ---------------------------------------------------------
-        onSnapshot(
-            shipmentsCollection,
-            (snapshot) => {
-                isFirebaseLoaded = true;
-                isFirebaseConnected = true;
-                hideFirebaseError();
-                updateFirebaseStatusBadge(true);
+        function switchView(view) {
+            const customerView = document.getElementById('view-customer');
+            const adminView = document.getElementById('view-admin');
 
-                shipments = snapshot.docs.map(docSnap => {
-                    const data = docSnap.data() || {};
-                    const statusKey = STAGE_MAP[data.status] ? data.status : 'shipped';
-                    const normalizedOrigin = data.origin === 'dubai' ? 'dubai' : 'china';
-                    const normalizedNumber = String(data.number || extractCoreNumber(data.code || ''));
-                    const normalizedHistory = Array.isArray(data.history)
-                        ? data.history.map(item => ({
-                            status: STAGE_MAP[item.status] ? item.status : statusKey,
-                            note: String(item.note || ''),
-                            date: item.date || item.timestamp || data.updatedAt || new Date().toISOString()
-                        }))
-                        : [];
-
-                    return {
-                        id: docSnap.id,
-                        origin: normalizedOrigin,
-                        number: normalizedNumber,
-                        code: String(data.code || formatShipmentCode(normalizedOrigin, normalizedNumber)),
-                        status: statusKey,
-                        note: String(data.note || ''),
-                        updatedAt: data.updatedAt || new Date().toISOString(),
-                        history: normalizedHistory
-                    };
-                });
-
-                // ترتيب الشحنات من الأحدث تحديثاً إلى الأقدم
-                shipments.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-
-                // تحديث لوحة الموظف فوراً إذا كانت مفتوحة
-                if (isAdminLoggedIn) {
-                    renderAdminDashboard();
-                }
-
-                // تحديث نتيجة تتبع الزبون فوراً إذا كان يتابع شحنة حالياً
+            if (view === 'customer') {
+                customerView.classList.remove('hidden');
+                adminView.classList.add('hidden');
                 if (selectedOrigin && lastSearchedQuery) {
+                    executeCustomerSearch(lastSearchedQuery, { silent: true });
+                }
+            } else {
+                customerView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+
+                if (isAdminLoggedIn) {
+                    document.getElementById('admin-login-screen').classList.add('hidden');
+                    document.getElementById('admin-dashboard').classList.remove('hidden');
+                    updateFirebaseStatusBadge(isFirebaseConnected);
+                    renderAdminDashboard();
+                } else {
+                    document.getElementById('admin-dashboard').classList.add('hidden');
+                    document.getElementById('admin-login-screen').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('admin-username').focus(), 100);
+                }
+            }
+        }
+
+        function handleHashRoute() {
+            if (window.location.hash === '#admin') {
+                switchView('admin');
+            } else {
+                switchView('customer');
+            }
+        }
+
+        function goToCustomerView() {
+            if (window.location.hash === '#admin') {
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+            switchView('customer');
+        }
+
+        window.addEventListener('hashchange', handleHashRoute);
                     executeCustomerSearch(lastSearchedQuery, { silent: true });
                 }
             },
@@ -1045,10 +1056,16 @@
             event.preventDefault();
             const username = document.getElementById('admin-username').value.trim();
             const password = document.getElementById('admin-password').value;
+            const rememberMe = document.getElementById('admin-remember').checked;
             const errorEl = document.getElementById('admin-login-error');
 
             if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
                 isAdminLoggedIn = true;
+                if (rememberMe) {
+                    localStorage.setItem(ADMIN_REMEMBER_KEY, 'true');
+                } else {
+                    localStorage.removeItem(ADMIN_REMEMBER_KEY);
+                }
                 errorEl.classList.add('hidden');
                 document.getElementById('admin-username').value = '';
                 document.getElementById('admin-password').value = '';
@@ -1066,6 +1083,7 @@
 
         function handleAdminLogout() {
             isAdminLoggedIn = false;
+            localStorage.removeItem(ADMIN_REMEMBER_KEY);
             document.getElementById('admin-dashboard').classList.add('hidden');
             document.getElementById('admin-login-screen').classList.remove('hidden');
             showToast('تم تسجيل الخروج بنجاح', 'info');
@@ -1409,6 +1427,7 @@
         // إتاحة الدوال على كائن window لعمل أحداث HTML بشكل سليم داخل module
         Object.assign(window, {
             switchView,
+            goToCustomerView,
             selectOrigin,
             resetOriginSelection,
             handleCustomerSearch,
@@ -1427,8 +1446,9 @@
             exportShipmentsCSV
         });
 
-        // تهيئة أولية
+        // تهيئة أولية وتوجيه الرابط
         updateNewCodePreview();
+        handleHashRoute();
     </script>
 </body>
 </html>
